@@ -31,21 +31,45 @@ The goal is to ensure the system:
 - Scaling and failure handling (pod restarts, crashes)
 
 ---
-
 ## Current Status (First Commit)
 
-- Repository initialized
-- Architecture agreed with teammate
-- Responsibilities clearly split
-- No production code yet
+- Repository initialized and pushed to GitHub
+- Architecture agreed with teammate (microservices + RAG + Kubernetes)
+- Responsibilities clearly split between Person A and Person B
+- Project scope locked in before implementation
 
-This commit intentionally contains **only documentation** to lock scope and ownership before implementation begins.
+This commit intentionally contains **only documentation** to ensure both contributors start with the same plan and no scope confusion.
 
 ---
 
-## Immediate Next Steps
+## Immediate Next Steps 
 
-- Define API contracts for upload and ingestion
-- Design PostgreSQL schema for documents and jobs
-- Create base service skeletons
-- Set up local Kubernetes cluster (minikube or kind)
+- Create repo structure for services / infra / docs
+- Add base service skeleton folders
+- Add initial Docker + Kubernetes placeholders
+- Start PostgreSQL schema draft for documents and ingestion jobs
+
+
+
+## Current Status (Second Commit)
+
+- Completed the planned Week‑1 setup from the first commit
+- Repo structure added for `services/`, `infra/`, and `docs/`
+- Created skeleton folders for platform-owned services (API gateway, ingestion, infra)
+- Added Docker placeholder for local Postgres development
+- Added Kubernetes base folder for upcoming manifests
+- Added initial Postgres schema draft placeholder file
+
+This commit focuses on turning the agreed architecture into a clean working repository structure so development can begin without merge conflicts.
+
+---
+
+## Immediate Next Steps 
+
+- Implement upload endpoint (API Gateway)
+- Add ingestion job queue + job status tracking
+- Fill PostgreSQL schema for:
+  - documents
+  - ingestion_jobs
+  - chunk metadata references
+- Start Kubernetes base manifests (deployments + services)
