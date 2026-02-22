@@ -51,8 +51,14 @@ def start_polling_loop():
     interval = int(os.getenv("SYNC_INTERVAL_SECONDS", 60))
     print(f"[indexer] Polling loop started. Interval: {interval}s")
 
-    run_indexing_cycle(full_reindex=True)
+    # Attempt full reindex on startup — but don't crash if DB is unavailable
+    try:
+        run_indexing_cycle(full_reindex=True)
+    except Exception as e:
+        print(f"[indexer] Startup indexing failed (DB may not be ready yet): {e}")
+        print(f"[indexer] Will retry in {interval}s...")
 
+    # Keep retrying on the interval regardless
     while True:
         time.sleep(interval)
         try:
