@@ -1,0 +1,59 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api-gateway
+  namespace: codeatlas
+  labels:
+    app: api-gateway
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: api-gateway
+  template:
+    metadata:
+      labels:
+        app: api-gateway
+    spec:
+      containers:
+        - name: api-gateway
+          image: codeatlas/api-gateway:latest
+          ports:
+            - containerPort: 3000
+          envFrom:
+            - configMapRef:
+                name: codeatlas-config
+          env:
+            - name: PG_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: codeatlas-secrets
+                  key: pg-password
+            - name: PORT
+              value: "3000"
+          livenessProbe:
+            httpGet:
+              path: /api/health/live
+              port: 3000
+            initialDelaySeconds: 10
+            periodSeconds: 15
+          readinessProbe:
+            httpGet:
+              path: /api/health
+              port: 3000
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "100m"
+            limits:
+              memory: "256Mi"
+              cpu: "250m"
+          volumeMounts:
+            - name: uploads
+              mountPath: /app/uploads
+      volumes:
+        - name: uploads
+          persistentVolumeClaim:
+            claimName: uploads-pvc

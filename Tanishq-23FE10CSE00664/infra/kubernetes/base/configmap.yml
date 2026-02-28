@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: codeatlas-config
+  namespace: codeatlas
+data:
+  PG_HOST: "postgres"
+  PG_PORT: "5432"
+  PG_DATABASE: "codeatlas"
+  PG_USER: "codeatlas"
+  RAG_ENGINE_URL: "http://rag-engine:8001"
+  UPLOAD_DIR: "/app/uploads"
+  POLL_INTERVAL: "5000"
+  NODE_ENV: "production"

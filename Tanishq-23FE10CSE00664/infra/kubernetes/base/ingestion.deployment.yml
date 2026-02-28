@@ -1,0 +1,43 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ingestion-service
+  namespace: codeatlas
+  labels:
+    app: ingestion-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ingestion-service
+  template:
+    metadata:
+      labels:
+        app: ingestion-service
+    spec:
+      containers:
+        - name: ingestion-service
+          image: codeatlas/ingestion-service:latest
+          envFrom:
+            - configMapRef:
+                name: codeatlas-config
+          env:
+            - name: PG_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: codeatlas-secrets
+                  key: pg-password
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "100m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+          volumeMounts:
+            - name: uploads
+              mountPath: /app/uploads
+      volumes:
+        - name: uploads
+          persistentVolumeClaim:
+            claimName: uploads-pvc
