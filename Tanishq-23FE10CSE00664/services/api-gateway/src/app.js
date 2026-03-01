@@ -2,6 +2,7 @@
 const express = require('express');
 const cors = require('cors');
 const config = require('./config');
+const errorHandler = require('./middleware/error-handler');
 const healthRoutes = require('./routes/health.routes');
 const uploadRoutes = require('./routes/upload.routes');
 const jobsRoutes = require('./routes/jobs.routes');
@@ -18,5 +19,6 @@ app.use('/api/documents', uploadRoutes);
 app.use('/api/jobs', jobsRoutes);
 app.use('/api/query', queryRoutes);
 
-module.exports = app;
+app.use(errorHandler);
 
+module.exports = app;
