@@ -1,6 +1,7 @@
 // Health check endpoints for liveness and readiness probes
 const { Router } = require('express');
 const { healthCheck } = require('codeatlas-shared/src/db/pool');
+const metrics = require('codeatlas-shared/src/metrics');
 
 const router = Router();
 
@@ -14,11 +15,16 @@ router.get('/', async (req, res) => {
     uptime: process.uptime(),
     timestamp: new Date().toISOString(),
     database: dbHealth,
+    memory: process.memoryUsage(),
   });
 });
 
 router.get('/live', (req, res) => {
   res.status(200).json({ status: 'alive' });
+});
+
+router.get('/metrics', (req, res) => {
+  res.json(metrics.snapshot());
 });
 
 module.exports = router;
