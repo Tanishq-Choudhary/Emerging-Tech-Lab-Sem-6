@@ -10,13 +10,14 @@ QUERY_PREFIX = "Represent this sentence for searching relevant passages: "
 DOCUMENT_PREFIX = "Represent this code snippet: "
 
 _model = None
+hf_token = os.getenv("HF_API_TOKEN")
 
 def get_model() -> SentenceTransformer:
     global _model
     if _model is None:
         model_name = os.getenv("EMBEDDING_MODEL", "BAAI/bge-base-en-v1.5")
         print(f"[embedder] Loading model: {model_name}")
-        _model = SentenceTransformer(model_name)
+        _model = SentenceTransformer(model_name, token=hf_token)
         print(f"[embedder] Model loaded successfully.")
     return _model
 

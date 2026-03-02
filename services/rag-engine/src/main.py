@@ -4,20 +4,23 @@ from contextlib import asynccontextmanager
 from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.exceptions import RequestValidationError
+from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from .api.routes import router
 from .indexing.indexer import start_polling_loop
 from .db.connection import close_pool
+from .utils.errors import (
+    http_exception_handler,
+    validation_exception_handler,
+    unhandled_exception_handler,
+)
 
 load_dotenv()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # ---- Startup ----
     print("[main] CodeAtlas RAG Engine starting up...")
-
-    # Start the background indexing loop in a daemon thread
-    # Daemon = thread dies automatically when the main process exits
     indexer_thread = threading.Thread(
         target=start_polling_loop,
         daemon=True,
@@ -26,9 +29,8 @@ async def lifespan(app: FastAPI):
     indexer_thread.start()
     print("[main] Background indexer thread started.")
 
-    yield  # App is now running and serving requests
+    yield
 
-    # ---- Shutdown ----
     print("[main] Shutting down RAG Engine...")
     close_pool()
     print("[main] Postgres connection pool closed. Goodbye.")
@@ -47,6 +49,11 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Register exception handlers
+app.add_exception_handler(StarletteHTTPException, http_exception_handler)
+app.add_exception_handler(RequestValidationError, validation_exception_handler)
+app.add_exception_handler(Exception, unhandled_exception_handler)
 
 app.include_router(router)
 

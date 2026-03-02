@@ -4,12 +4,12 @@ from .pipeline import run_query_pipeline
 from ..vector_store.chroma_store import get_collection_count
 from ..indexing.state import indexer_state
 from ..db.connection import get_connection, release_connection
+from ..utils.sanitizer import sanitize_question
 
 router = APIRouter()
 
 @router.get("/health", response_model=HealthResponse)
 def health_check():
-    # Check Postgres connectivity
     postgres_status = "unreachable"
     try:
         conn = get_connection()
@@ -18,7 +18,6 @@ def health_check():
     except Exception:
         pass
 
-    # Check vector store
     try:
         count = get_collection_count()
         vector_status = "ready" if count > 0 else "empty"
@@ -26,7 +25,6 @@ def health_check():
         count = 0
         vector_status = "unavailable"
 
-    # Overall health
     if postgres_status == "connected" and vector_status == "ready":
         overall = "healthy"
     elif postgres_status == "unreachable":
@@ -49,9 +47,18 @@ def health_check():
 
 @router.post("/query", response_model=QueryResponse)
 def query(request: QueryRequest):
+    # Sanitize before touching any ML pipeline
+    clean_question = sanitize_question(request.question)
+
+    if not clean_question:
+        raise HTTPException(
+            status_code=400,
+            detail="Question is empty after sanitization. Please rephrase."
+        )
+
     try:
         result = run_query_pipeline(
-            question=request.question,
+            question=clean_question,
             top_k=request.top_k
         )
         return QueryResponse(
@@ -60,4 +67,7 @@ def query(request: QueryRequest):
         )
     except Exception as e:
         print(f"[routes] /query error: {e}")
-        raise HTTPException(status_code=500, detail="An error occurred while processing your query.")
+        raise HTTPException(
+            status_code=500,
+            detail="An error occurred while processing your query."
+        )
