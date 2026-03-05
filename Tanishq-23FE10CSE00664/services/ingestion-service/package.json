@@ -5,7 +5,8 @@
   "main": "src/worker.js",
   "scripts": {
     "start": "node src/worker.js",
-    "dev": "node --watch src/worker.js"
+    "dev": "node --watch src/worker.js",
+    "test": "node --test tests/"
   },
   "dependencies": {
     "codeatlas-shared": "file:../shared"
