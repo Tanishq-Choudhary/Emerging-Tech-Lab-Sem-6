@@ -1,4 +1,5 @@
 // Ingestion worker that polls for pending jobs and processes them
+const logger = require('codeatlas-shared/src/logger');
 const jobRepo = require('./repository/job.repo');
 const { processDirectory } = require('./pipeline/processor');
 const { shutdown } = require('codeatlas-shared/src/db/pool');
@@ -12,15 +13,15 @@ async function processNextJob() {
   const job = await jobRepo.claimNextJob();
   if (!job) return false;
 
-  process.stdout.write(`Processing job ${job.id} for document ${job.documentId}\n`);
+  logger.info('Processing job', { jobId: job.id, documentId: job.documentId });
 
   try {
     const uploadDir = process.env.UPLOAD_DIR || './uploads';
     const results = await processDirectory(uploadDir, 'default', job.id);
     await jobRepo.markCompleted(job.id);
-    process.stdout.write(`Job ${job.id} completed: ${JSON.stringify(results)}\n`);
+    logger.info('Job completed', { jobId: job.id, results });
   } catch (err) {
-    process.stderr.write(`Job ${job.id} failed: ${err.message}\n`);
+    logger.error('Job failed', { jobId: job.id, error: err.message });
     await jobRepo.markFailed(job.id, err.message);
   }
 
@@ -35,7 +36,7 @@ async function pollLoop() {
         await new Promise((resolve) => setTimeout(resolve, POLL_INTERVAL));
       }
     } catch (err) {
-      process.stderr.write(`Poll error: ${err.message}\n`);
+      logger.error('Poll error', { error: err.message });
       await new Promise((resolve) => setTimeout(resolve, POLL_INTERVAL));
     }
   }
@@ -46,22 +47,22 @@ async function staleJobChecker() {
     try {
       const resetIds = await jobRepo.resetStaleJobs();
       if (resetIds.length > 0) {
-        process.stdout.write(`Reset ${resetIds.length} stale job(s)\n`);
+        logger.warn('Reset stale jobs', { count: resetIds.length, ids: resetIds });
       }
     } catch (err) {
-      process.stderr.write(`Stale check error: ${err.message}\n`);
+      logger.error('Stale check error', { error: err.message });
     }
     await new Promise((resolve) => setTimeout(resolve, STALE_CHECK_INTERVAL));
   }
 }
 
 function stop() {
-  process.stdout.write('Ingestion worker shutting down\n');
+  logger.info('Ingestion worker shutting down');
   running = false;
 }
 
 async function start() {
-  process.stdout.write('Ingestion worker started\n');
+  logger.info('Ingestion worker started', { pollInterval: POLL_INTERVAL });
   pollLoop();
   staleJobChecker();
 }
