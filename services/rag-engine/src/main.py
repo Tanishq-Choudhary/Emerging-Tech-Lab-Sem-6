@@ -1,8 +1,9 @@
 import os
+import time
 import threading
 from contextlib import asynccontextmanager
 from dotenv import load_dotenv
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.exceptions import RequestValidationError
 from starlette.exceptions import HTTPException as StarletteHTTPException
@@ -15,25 +16,29 @@ from .utils.errors import (
     validation_exception_handler,
     unhandled_exception_handler,
 )
+from .utils.logger import get_logger, request_logger
 
 load_dotenv()
 
+logger = get_logger(__name__)
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    print("[main] CodeAtlas RAG Engine starting up...")
+    logger.info("CodeAtlas RAG Engine starting up...")
     indexer_thread = threading.Thread(
         target=start_polling_loop,
         daemon=True,
         name="indexer-polling-thread"
     )
     indexer_thread.start()
-    print("[main] Background indexer thread started.")
+    logger.info("Background indexer thread started.")
 
     yield
 
-    print("[main] Shutting down RAG Engine...")
+    logger.info("Shutting down RAG Engine...")
     close_pool()
-    print("[main] Postgres connection pool closed. Goodbye.")
+    logger.info("Postgres connection pool closed. Goodbye.")
 
 
 app = FastAPI(
@@ -50,7 +55,19 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Register exception handlers
+@app.middleware("http")
+async def log_requests(request: Request, call_next):
+    start = time.time()
+    response = await call_next(request)
+    duration_ms = (time.time() - start) * 1000
+    request_logger(
+        method=request.method,
+        path=request.url.path,
+        status_code=response.status_code,
+        duration_ms=duration_ms,
+    )
+    return response
+
 app.add_exception_handler(StarletteHTTPException, http_exception_handler)
 app.add_exception_handler(RequestValidationError, validation_exception_handler)
 app.add_exception_handler(Exception, unhandled_exception_handler)
