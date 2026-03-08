@@ -1,3 +1,4 @@
+const path = require('path');
 // Ingestion worker that polls for pending jobs and processes them
 const logger = require('codeatlas-shared/src/logger');
 const jobRepo = require('./repository/job.repo');
@@ -17,9 +18,14 @@ async function processNextJob() {
 
   try {
     const uploadDir = process.env.UPLOAD_DIR || './uploads';
-    const results = await processDirectory(uploadDir, 'default', job.id);
+    const document = await require('../repository/document.repo').findById(job.documentId);
+    if (!document) throw new Error('Document not found');
+
+    const filePath = path.join(uploadDir, document.filename);
+    const results = await require('../pipeline/processor').processFile(filePath, document.repositoryName, job.id, document.id);
+
     await jobRepo.markCompleted(job.id);
-    logger.info('Job completed', { jobId: job.id, results });
+    logger.info('Job completed', { jobId: job.id, documentId: job.documentId });
   } catch (err) {
     logger.error('Job failed', { jobId: job.id, error: err.message });
     await jobRepo.markFailed(job.id, err.message);

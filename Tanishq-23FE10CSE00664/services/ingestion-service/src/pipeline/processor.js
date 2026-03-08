@@ -12,26 +12,14 @@ async function computeChecksum(filePath) {
   return crypto.createHash('sha256').update(content).digest('hex');
 }
 
-async function processFile(filePath, repositoryName, jobId) {
+async function processFile(filePath, repositoryName, jobId, documentId) {
   const content = await fs.readFile(filePath, 'utf-8');
   const language = detectLanguage(filePath);
-  const stat = await fs.stat(filePath);
 
-  const checksum = await computeChecksum(filePath);
-  const existing = await documentRepo.findByChecksum(checksum);
-  if (existing) {
-    return { skipped: true, reason: 'duplicate', documentId: existing.id };
+  // Update document language if detected
+  if (language) {
+    await documentRepo.updateLanguage(documentId, language);
   }
-
-  const document = await documentRepo.create({
-    filename: filePath.split(/[\\/]/).pop(),
-    originalPath: filePath,
-    mimeType: 'text/plain',
-    sizeBytes: stat.size,
-    language,
-    repositoryName,
-    checksum,
-  });
 
   const functions = language ? extractFunctions(content, language) : [];
   const classes = language ? extractClasses(content, language) : [];
@@ -43,7 +31,7 @@ async function processFile(filePath, repositoryName, jobId) {
         (document_id, job_id, chunk_index, content, start_line, end_line, token_count, chunk_type, function_name, class_name)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
       [
-        document.id,
+        documentId,
         jobId,
         chunk.chunkIndex,
         chunk.content,
@@ -59,7 +47,7 @@ async function processFile(filePath, repositoryName, jobId) {
 
   return {
     skipped: false,
-    documentId: document.id,
+    documentId: documentId,
     chunksCreated: chunks.length,
     language,
   };
