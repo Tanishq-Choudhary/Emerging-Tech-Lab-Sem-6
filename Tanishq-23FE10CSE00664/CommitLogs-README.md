@@ -1,4 +1,4 @@
-# Distributed Semantic Search Engine
+# CodeAtlas
 ## Platform, Infrastructure & Ingestion - Tanishq Choudhary 23FE10CSE00664
 
 This repository contains a distributed semantic search system built using a microservices architecture. The platform supports document uploads, asynchronous ingestion, metadata persistence, and scalable query handling. All services are containerized and designed to run on Kubernetes.
@@ -31,7 +31,7 @@ The goal is to ensure the system:
 - Scaling and failure handling (pod restarts, crashes)
 
 ---
-## Current Status (First Commit)
+## Current Status (First Commit) - Jan 26, 2026
 
 - Repository initialized and pushed to GitHub
 - Architecture agreed with teammate (microservices + RAG + Kubernetes)
@@ -49,11 +49,11 @@ This commit intentionally contains **only documentation** to ensure both contrib
 - Add initial Docker + Kubernetes placeholders
 - Start PostgreSQL schema draft for documents and ingestion jobs
 
+---
 
+## Current Status (Second Commit) - Feb 16, 2026
 
-## Current Status (Second Commit)
-
-- Completed the planned Week‑1 setup from the first commit
+- Completed the planned Week-1 setup from the first commit
 - Repo structure added for `services/`, `infra/`, and `docs/`
 - Created skeleton folders for platform-owned services (API gateway, ingestion, infra)
 - Added Docker placeholder for local Postgres development
@@ -73,3 +73,112 @@ This commit focuses on turning the agreed architecture into a clean working repo
   - ingestion_jobs
   - chunk metadata references
 - Start Kubernetes base manifests (deployments + services)
+
+---
+
+## Commit 3 - Feb 17, 2026
+
+- Finalized the `services/shared` library logic for CodeAtlas.
+- Implemented PostgreSQL schema definitions for `documents`, `ingestion_jobs`, and `chunk_metadata`. 
+- Added robust database connection pooling and graceful shutdown handlers to prevent leaky handles.
+
+---
+
+## Commit 4 - Feb 18, 2026
+
+- Developed `DocumentModel` and its repository layer within the `ingestion-service`. 
+- Implemented core CRUD operations directly against PostgreSQL using parameterized queries for security.
+
+---
+
+## Commit 5 - Feb 19, 2026
+
+- Created the `JobModel` and repository queues.
+- Built a polling-friendly task claim mechanism utilizing `FOR UPDATE SKIP LOCKED` inside Postgres to safely handle concurrent job processing without race conditions.
+
+---
+
+## Commit 6 - Feb 21, 2026
+
+- Stood up the `api-gateway` Express.js server. 
+- Integrated Multer to accept and store multipart form-data for legacy file ingestion.
+- Added foundational `/api/health` and `/api/documents/upload` REST endpoints.
+
+---
+
+## Commit 7 - Feb 22, 2026
+
+- Built the core heavy-lifting logic inside `ingestion-service`. 
+- Added a robust multi-language AST parser that can detect programming languages, extract top-level functions/classes, and chunk remaining code based on overlapping token estimations. 
+
+---
+
+## Commit 8 - Feb 26, 2026
+
+- Integrated job orchestrator to connect the API gateway requests to the background ingestion processors.
+- Updated API Gateway to track pending jobs, retrieve individual run statistics, and proxy `/api/query` requests to the upcoming RAG engine.
+
+---
+
+## Commit 9 - Feb 27, 2026
+
+- Added multi-stage builder Dockerfiles for `api-gateway` and `ingestion-service`.
+- Created production-ready `docker-compose.yml` and hot-reload enabled `docker-compose.dev.yml` to streamline local development.
+
+---
+
+## Commit 10 - Feb 28, 2026
+
+- Authored base Kubernetes manifests (`.yaml`). 
+- Declared dedicated `Namespace`, PersistentVolumeClaims for Postgres limits and shared uploads, and standard Deployments + ClusterIP Services.
+
+---
+
+## Commit 11 - Mar 1, 2026
+
+- Formalized HTTP boundaries globally using centralized error-handling Express middlewares.
+- Added strict payload validation pipelines across `api-gateway` endpoints to drop malformed input before further routing occurs.
+
+---
+
+## Commit 12 - Mar 2, 2026
+
+- Built a custom instrumentation module using Prometheus-style metric arrays.
+- Wired memory footprint, response durations, and up-times aggressively into `/api/health` so orchestrators (like K8s) can evaluate load distributions effectively.
+
+---
+
+## Commit 13 - Mar 4, 2026
+
+- Added robust test suite inside `api-gateway/tests` using the built-in Node.js v22 test runner.
+- Assured error paths, invalid UUID handlers, and multipart edge cases successfully fail/succeed exactly as expected.
+
+---
+
+## Commit 14 - Mar 5, 2026
+
+- Built functional unit test suite over `ingestion-service` isolating its chunking algorithm. 
+- Added coverage over code overlap handling to ensure code definitions aren't abnormally severed across vector splits.
+
+---
+
+## Commit 15 - Mar 6, 2026
+
+- Extended `shared` logging interface with a JSON-formatted standard output logger `logger.requestLogger()`.
+- Added specific service-name tag associations per trace to track the exact lifecycle of background ingestion tasks over multiple Node processes.
+
+---
+
+## Commit 16 - Mar 7, 2026
+
+- Plugged in critical security headers across gateways (X-Content-Type-Options, X-Frame-Options, STS). 
+- Added a custom token bucket rate limiter tracking connecting IPs to guard systems against unbounded job spam.
+
+---
+
+## Commit 17 & 18 - Mar 8, 2026
+
+- Formalized all architectural docs, preparing specific `rag-integration-guide.md` explicitly for Divyanshu. 
+- Documented Kubernetes deployment methodologies in `deployment.md`. 
+- Repaired minor path-ing resolution module bugs affecting CI tests dynamically parsing via `--test` syntax on Node v22.
+- Hardened standard `.gitignore` explicitly forbidding `node_modules` and any associated AI handoff drafts.
