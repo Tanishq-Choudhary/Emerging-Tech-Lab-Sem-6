@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CodeAtlas - Control Center</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #0f172a;
+            color: #e2e8f0;
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 30px;
+            line-height: 1.6;
+        }
+
+        h1,
+        h2,
+        h3 {
+            color: #f8fafc;
+            border-bottom: 2px solid #1e293b;
+            padding-bottom: 10px;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .panel {
+            background: #1e293b;
+            border: 1px solid #334155;
+            padding: 20px;
+            margin-bottom: 25px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        .full-width {
+            grid-column: span 2;
+        }
+
+        input,
+        button,
+        select {
+            font-family: inherit;
+            padding: 10px;
+            margin: 8px 0;
+            border-radius: 4px;
+            border: 1px solid #475569;
+            background: #0f172a;
+            color: #f8fafc;
+        }
+
+        button {
+            background: #3b82f6;
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-weight: 600;
+            transition: background 0.2s;
+            padding: 10px 20px;
+        }
+
+        button:hover {
+            background: #2563eb;
+        }
+
+        button.secondary {
+            background: #475569;
+        }
+
+        button.secondary:hover {
+            background: #334155;
+        }
+
+        pre {
+            background: #020617;
+            color: #38bdf8;
+            padding: 15px;
+            overflow-x: auto;
+            border-radius: 6px;
+            font-size: 0.9em;
+            border: 1px solid #1e293b;
+        }
+
+        .status-dot {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+
+        .healthy {
+            background-color: #22c55e;
+            box-shadow: 0 0 8px #22c55e;
+        }
+
+        .unhealthy {
+            background-color: #ef4444;
+            box-shadow: 0 0 8px #ef4444;
+        }
+
+        .unknown {
+            background-color: #64748b;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+
+        th,
+        td {
+            text-align: left;
+            padding: 12px;
+            border-bottom: 1px solid #334155;
+            font-size: 0.9em;
+        }
+
+        tr:hover {
+            background: #334155;
+        }
+
+        .chunk-card {
+            background: #0f172a;
+            border-left: 4px solid #3b82f6;
+            padding: 10px;
+            margin: 10px 0;
+            font-size: 0.85em;
+        }
+
+        .tag {
+            font-size: 0.75em;
+            padding: 2px 6px;
+            border-radius: 4px;
+            background: #3b82f6;
+            margin-right: 5px;
+        }
+
+        .tag-function {
+            background: #8b5cf6;
+        }
+
+        .tag-class {
+            background: #ec4899;
+        }
+    </style>
+</head>
+
+<body>
+
+    <header style="display: flex; justify-content: space-between; align-items: center;">
+        <h1>CodeAtlas Engine <small style="font-weight: normal; font-size: 0.5em; color: #94a3b8;">v1.0.0-dev</small>
+        </h1>
+        <div>
+            <span id="gateway-dot" class="status-dot unknown"></span> Gateway
+            <span id="db-dot" class="status-dot unknown"></span> Database
+            <button onclick="location.reload()" style="font-size: 10px; padding: 2px 6px; margin-left: 10px;"
+                class="secondary">Force Reload UI</button>
+        </div>
+    </header>
+
+    <div class="grid">
+        <div class="panel">
+            <h2>System Health</h2>
+            <p><strong>Database:</strong> <span id="db-status-text">Checking...</span></p>
+            <p><strong>Jobs:</strong> <span id="jobs-stats-text">N/A</span></p>
+            <button onclick="refreshData()">Refresh Data</button>
+        </div>
+
+        <div class="panel">
+            <h2>Ingestion Control</h2>
+            <form id="uploadForm">
+                <div style="display: flex; gap: 10px;">
+                    <input type="text" id="repository" name="repository" placeholder="Repo Name" value="default"
+                        style="flex:1">
+                    <input type="file" id="files" name="files" multiple required>
+                </div>
+                <button type="submit">Queue for Ingestion</button>
+            </form>
+        </div>
+
+        <div class="panel full-width">
+            <h2>Document Hub</h2>
+            <p>Processed source files in the system.</p>
+            <table id="docsTable">
+                <thead>
+                    <tr>
+                        <th>Filename</th>
+                        <th>Repo</th>
+                        <th>Language</th>
+                        <th>Size</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody id="docsList">
+                    <tr>
+                        <td colspan="5">Initializing...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div id="chunksPanel" class="panel full-width" style="display:none;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <h2 id="chunksTitle">Semantic Chunks</h2>
+                <button class="secondary"
+                    onclick="document.getElementById('chunksPanel').style.display='none'">Close</button>
+            </div>
+            <div id="chunksList"></div>
+        </div>
+
+        <div class="panel full-width">
+            <h2>Diagnostic Trace</h2>
+            <pre id="consoleOut">System initialized. Ready for operations.</pre>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:3000/api';
+
+        function logOutput(title, data) {
+            const out = document.getElementById('consoleOut');
+            const timestamp = new Date().toLocaleTimeString();
+            const msg = typeof data === 'string' ? data : JSON.stringify(data, null, 2);
+            out.innerText = `[${timestamp}] ${title}: ${msg}\n` + out.innerText;
+        }
+
+        async function fetchJSON(url) {
+            const res = await fetch(url, { cache: 'no-store' });
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            return res.json();
+        }
+
+        async function refreshData() {
+            logOutput('Sync', 'Refreshing system state...');
+
+            // 1. Gateway Health
+            try {
+                const live = await fetchJSON(`${API_BASE}/health/live`);
+                document.getElementById('gateway-dot').className = 'status-dot healthy';
+            } catch (err) {
+                document.getElementById('gateway-dot').className = 'status-dot unhealthy';
+                logOutput('Gateway Error', err.message);
+            }
+
+            // 2. Database Health
+            try {
+                const health = await fetchJSON(`${API_BASE}/health`);
+                const isHealthy = health.database && health.database.status === 'healthy';
+                document.getElementById('db-status-text').innerText = isHealthy ? 'Healthy' : 'Degraded';
+                document.getElementById('db-dot').className = isHealthy ? 'status-dot healthy' : 'status-dot unhealthy';
+            } catch (err) {
+                document.getElementById('db-status-text').innerText = 'Down';
+                document.getElementById('db-dot').className = 'status-dot unhealthy';
+                logOutput('Database Error', err.message);
+            }
+
+            // 3. Jobs Stats
+            try {
+                const jobs = await fetchJSON(`${API_BASE}/jobs`);
+                document.getElementById('jobs-stats-text').innerText = JSON.stringify(jobs.stats);
+            } catch (err) {
+                logOutput('Jobs Error', err.message);
+            }
+
+            // 4. Load Documents
+            loadDocuments();
+        }
+
+        async function loadDocuments() {
+            const tbody = document.getElementById('docsList');
+            try {
+                const data = await fetchJSON(`${API_BASE}/documents`);
+                console.log('Docs:', data);
+
+                if (!data.documents || data.documents.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="5">No documents found in database.</td></tr>';
+                    return;
+                }
+
+                tbody.innerHTML = data.documents.map(doc => `
+                    <tr>
+                        <td title="${doc.id}">${doc.original_path || doc.filename}</td>
+                        <td>${doc.repository_name}</td>
+                        <td><span class="tag">${doc.language || 'text'}</span></td>
+                        <td>${(doc.size_bytes / 1024).toFixed(1)} KB</td>
+                        <td><button style="padding: 4px 8px; font-size: 0.8em;" onclick="viewChunks('${doc.id}', '${doc.filename}')">Chunks</button></td>
+                    </tr>
+                `).join('');
+            } catch (err) {
+                tbody.innerHTML = `<tr><td colspan="5" style="color:#ef4444">Error loading documents: ${err.message}</td></tr>`;
+                logOutput('Documents Load Error', err.message);
+            }
+        }
+
+        async function viewChunks(docId, filename) {
+            const panel = document.getElementById('chunksPanel');
+            const list = document.getElementById('chunksList');
+            const title = document.getElementById('chunksTitle');
+
+            panel.style.display = 'block';
+            list.innerHTML = '<p>Retrieving semantic chunks...</p>';
+            title.innerText = `Semantic Chunks: ${filename}`;
+
+            try {
+                const data = await fetchJSON(`${API_BASE}/documents/${docId}/chunks`);
+                if (!data.chunks || data.chunks.length === 0) {
+                    list.innerHTML = '<p>No chunks generated. Ingestion might be pending or failed for this file.</p>';
+                } else {
+                    list.innerHTML = data.chunks.map(c => `
+                        <div class="chunk-card">
+                            <div style="margin-bottom: 8px;">
+                                <span class="tag tag-${c.chunk_type}">${c.chunk_type.toUpperCase()}</span>
+                                ${c.function_name ? `<span class="tag tag-function">fn: ${c.function_name}</span>` : ''}
+                                ${c.class_name ? `<span class="tag tag-class">class: ${c.class_name}</span>` : ''}
+                                <span style="color: #64748b; font-size: 0.9em;">Lines ${c.start_line}-${c.end_line}</span>
+                            </div>
+                            <pre style="margin: 0; font-size: 0.8em;">${c.content.substring(0, 500)}${c.content.length > 500 ? '...' : ''}</pre>
+                        </div>
+                    `).join('');
+                }
+                panel.scrollIntoView({ behavior: 'smooth' });
+            } catch (err) {
+                list.innerHTML = `<p style="color:#ef4444">Error: ${err.message}</p>`;
+                logOutput('Chunks Error', err.message);
+            }
+        }
+
+        document.getElementById('uploadForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const formData = new FormData(e.target);
+            logOutput('Upload', 'Dispatching to gateway...');
+
+            try {
+                const res = await fetch(`${API_BASE}/documents/upload`, {
+                    method: 'POST',
+                    body: formData
+                });
+                const data = await res.json();
+                logOutput('Response', data);
+                if (res.ok) {
+                    e.target.reset();
+                    setTimeout(refreshData, 1000);
+                }
+            } catch (err) {
+                logOutput('Error', err.message);
+            }
+        });
+
+        // Initialize
+        refreshData();
+        setInterval(refreshData, 10000);
+    </script>
+</body>
+
+</html>
