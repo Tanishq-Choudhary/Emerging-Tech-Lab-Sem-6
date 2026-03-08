@@ -2,11 +2,11 @@
 const { Pool } = require('pg');
 
 const pool = new Pool({
-  host: process.env.PG_HOST || 'localhost',
+  host: process.env.PG_HOST,
   port: parseInt(process.env.PG_PORT, 10) || 5432,
-  database: process.env.PG_DATABASE || 'codeatlas',
-  user: process.env.PG_USER || 'codeatlas',
-  password: process.env.PG_PASSWORD || 'codeatlas_dev',
+  database: process.env.PG_DATABASE,
+  user: process.env.PG_USER,
+  password: process.env.PG_PASSWORD,
   max: parseInt(process.env.PG_POOL_MAX, 10) || 20,
   idleTimeoutMillis: 30000,
   connectionTimeoutMillis: 5000,

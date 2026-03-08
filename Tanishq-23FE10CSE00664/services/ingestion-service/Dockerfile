@@ -2,12 +2,17 @@ FROM node:22-alpine
 
 WORKDIR /app
 
-COPY services/shared/package.json services/shared/
-RUN cd services/shared && npm install --production
+# Copy root configurations
+COPY package.json ./
 
-COPY services/ingestion-service/package.json services/ingestion-service/
-RUN cd services/ingestion-service && npm install --production
+# Copy packages
+COPY services/shared/ package.json services/shared/
+COPY services/ingestion-service/ package.json services/ingestion-service/
 
+# Install from root leveraging workspaces
+RUN npm install --production
+
+# Copy source
 COPY services/shared/ services/shared/
 COPY services/ingestion-service/ services/ingestion-service/
 

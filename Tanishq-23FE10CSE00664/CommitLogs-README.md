@@ -175,10 +175,11 @@ This commit focuses on turning the agreed architecture into a clean working repo
 - Added a custom token bucket rate limiter tracking connecting IPs to guard systems against unbounded job spam.
 
 ---
+## Commit 17, 18, 19 & 20 - Mar 8-9, 2026
 
-## Commit 17 & 18 - Mar 8, 2026
-
-- Formalized all architectural docs, preparing specific `rag-integration-guide.md` explicitly for Divyanshu. 
-- Documented Kubernetes deployment methodologies in `deployment.md`. 
-- Repaired minor path-ing resolution module bugs affecting CI tests dynamically parsing via `--test` syntax on Node v22.
-- Hardened standard `.gitignore` explicitly forbidding `node_modules` and any associated AI handoff drafts.
+- Refactored ingestion processing logic to use SHA-256 checksums and granular file-level job isolation for production scalability. (Mar 8)
+- Developed a professional diagnostic Control Center (`test-ui.html`) to demonstrate the full E2E pipeline visually. (Mar 8)
+- Finalized technical documentation, including the `rag-integration-guide.md` and a comprehensive `demo-guide.md` for evaluation. (Mar 9)
+- Hardened platform security headers, rate limiting, and standard `.gitignore` configurations. (Mar 9)
+- Refactored all services and infrastructure (Docker & Kubernetes) to use 100% environment variable isolation, removing hardcoded credentials and hostnames. (Mar 9)
+- Successfully verified the platform can ingest legacy code into semantic, line-aware chunks within a distributed Kubernetes-ready environment. (Mar 9)

@@ -24,9 +24,15 @@ spec:
             - containerPort: 5432
           env:
             - name: POSTGRES_DB
-              value: codeatlas
+              valueFrom:
+                configMapKeyRef:
+                  name: codeatlas-config
+                  key: PG_DATABASE
             - name: POSTGRES_USER
-              value: codeatlas
+              valueFrom:
+                configMapKeyRef:
+                  name: codeatlas-config
+                  key: PG_USER
             - name: POSTGRES_PASSWORD
               valueFrom:
                 secretKeyRef:

@@ -1,0 +1,14 @@
+{
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "services/*"
+  ],
+  "scripts": {
+    "test": "npm test --workspaces --if-present"
+  },
+  "dependencies": {
+    "form-data": "^4.0.5",
+    "node-fetch": "^3.3.2"
+  }
+}

@@ -8,6 +8,8 @@ data:
   PG_PORT: "5432"
   PG_DATABASE: "codeatlas"
   PG_USER: "codeatlas"
+  PG_POOL_MAX: "20"
+  PORT: "3000"
   RAG_ENGINE_URL: "http://rag-engine:8001"
   UPLOAD_DIR: "/app/uploads"
   POLL_INTERVAL: "5000"

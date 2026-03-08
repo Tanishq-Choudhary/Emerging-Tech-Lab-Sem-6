@@ -10,7 +10,7 @@ const config = {
   },
 
   ragEngine: {
-    baseUrl: process.env.RAG_ENGINE_URL || 'http://localhost:8001',
+    baseUrl: process.env.RAG_ENGINE_URL,
     timeout: parseInt(process.env.RAG_TIMEOUT, 10) || 30000,
   },
 

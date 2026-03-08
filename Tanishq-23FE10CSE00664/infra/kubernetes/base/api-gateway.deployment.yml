@@ -30,7 +30,10 @@ spec:
                   name: codeatlas-secrets
                   key: pg-password
             - name: PORT
-              value: "3000"
+              valueFrom:
+                configMapKeyRef:
+                  name: codeatlas-config
+                  key: PORT
           livenessProbe:
             httpGet:
               path: /api/health/live
