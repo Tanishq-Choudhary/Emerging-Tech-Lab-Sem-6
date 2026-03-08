@@ -1,12 +1,17 @@
+import threading
 from fastapi import APIRouter, HTTPException
-from .schemas import QueryRequest, QueryResponse, SourceResult, HealthResponse
+from .schemas import QueryRequest, QueryResponse, SourceResult, HealthResponse, IndexResponse
 from .pipeline import run_query_pipeline
 from ..vector_store.chroma_store import get_collection_count
 from ..indexing.state import indexer_state
+from ..indexing.indexer import run_indexing_cycle
 from ..db.connection import get_connection, release_connection
 from ..utils.sanitizer import sanitize_question
+from ..utils.logger import get_logger
 
+logger = get_logger(__name__)
 router = APIRouter()
+
 
 @router.get("/health", response_model=HealthResponse)
 def health_check():
@@ -47,7 +52,6 @@ def health_check():
 
 @router.post("/query", response_model=QueryResponse)
 def query(request: QueryRequest):
-    # Sanitize before touching any ML pipeline
     clean_question = sanitize_question(request.question)
 
     if not clean_question:
@@ -66,8 +70,45 @@ def query(request: QueryRequest):
             sources=[SourceResult(**s) for s in result["sources"]]
         )
     except Exception as e:
-        print(f"[routes] /query error: {e}")
+        logger.error(f"/query error: {e}")
         raise HTTPException(
             status_code=500,
             detail="An error occurred while processing your query."
         )
+
+
+@router.post("/index", response_model=IndexResponse)
+def trigger_index(full: bool = False):
+    """
+    Manually trigger a re-indexing cycle.
+    - full=false (default): incremental sync, only new chunks since last run
+    - full=true: wipe and re-index everything from scratch
+
+    Essential for demo flow:
+    1. Upload code via Tanishq's Control Center
+    2. Hit POST /index to sync new chunks into ChromaDB
+    3. Query immediately
+    """
+    if indexer_state["status"] == "running":
+        raise HTTPException(
+            status_code=409,
+            detail="Indexing already in progress. Please wait and try again."
+        )
+
+    logger.info(f"Manual index triggered. full={full}")
+
+    # Run in background thread so the HTTP response returns immediately
+    def run():
+        try:
+            run_indexing_cycle(full_reindex=full)
+        except Exception as e:
+            logger.error(f"Manual index cycle failed: {e}")
+
+    thread = threading.Thread(target=run, daemon=True, name="manual-index-thread")
+    thread.start()
+
+    return IndexResponse(
+        success=True,
+        chunks_indexed=indexer_state.get("last_cycle_count", 0),
+        message=f"{'Full' if full else 'Incremental'} indexing started in background."
+    )
