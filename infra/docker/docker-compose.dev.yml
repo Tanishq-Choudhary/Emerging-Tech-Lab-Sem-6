@@ -29,7 +29,7 @@ services:
       PG_DATABASE: ${PG_DATABASE:-codeatlas}
       PG_USER: ${PG_USER:-codeatlas}
       PG_PASSWORD: ${PG_PASSWORD:-codeatlas_dev}
-      RAG_ENGINE_URL: http://rag-engine:8001
+      RAG_ENGINE_URL: ${RAG_ENGINE_URL:-http://rag-engine:8001}
       UPLOAD_DIR: /app/uploads
     depends_on:
       postgres:
