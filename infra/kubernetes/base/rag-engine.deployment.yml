@@ -1,0 +1,82 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rag-engine
+  namespace: codeatlas
+  labels:
+    app: rag-engine
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: rag-engine
+  template:
+    metadata:
+      labels:
+        app: rag-engine
+    spec:
+      containers:
+        - name: rag-engine
+          image: rag-engine:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8001
+          env:
+            - name: POSTGRES_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: codeatlas-config
+                  key: PG_HOST
+            - name: POSTGRES_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: codeatlas-config
+                  key: PG_PORT
+            - name: POSTGRES_DB
+              valueFrom:
+                configMapKeyRef:
+                  name: codeatlas-config
+                  key: PG_DATABASE
+            - name: POSTGRES_USER
+              valueFrom:
+                configMapKeyRef:
+                  name: codeatlas-config
+                  key: PG_USER
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: codeatlas-secrets
+                  key: pg-password
+            - name: CHROMA_PERSIST_PATH
+              value: "/app/chroma_data"
+            - name: EMBEDDING_MODEL
+              value: "BAAI/bge-base-en-v1.5"
+            - name: LLM_MODEL
+              value: "mistralai/Mistral-7B-Instruct-v0.2"
+            - name: TOP_K_DEFAULT
+              value: "5"
+            - name: SIMILARITY_THRESHOLD
+              value: "0.5"
+            - name: SYNC_INTERVAL_SECONDS
+              value: "60"
+            - name: PORT
+              value: "8001"
+          volumeMounts:
+            - name: chroma-storage
+              mountPath: /app/chroma_data
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8001
+            initialDelaySeconds: 30
+            periodSeconds: 15
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8001
+            initialDelaySeconds: 30
+            periodSeconds: 10
+      volumes:
+        - name: chroma-storage
+          persistentVolumeClaim:
+            claimName: rag-chroma-pvc

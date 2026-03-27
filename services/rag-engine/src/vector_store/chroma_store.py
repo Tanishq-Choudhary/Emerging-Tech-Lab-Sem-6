@@ -1,6 +1,8 @@
 import chromadb
 import os
 from dotenv import load_dotenv
+from ..utils.logger import get_logger
+logger = get_logger(__name__)
 
 load_dotenv()
 
@@ -13,7 +15,7 @@ def get_client() -> chromadb.Client:
     global _client
     if _client is None:
         persist_path = os.getenv("CHROMA_PERSIST_PATH", "./chroma_data")
-        print(f"[chroma] Initializing persistent client at: {persist_path}")
+        logger.info(f"Initializing persistent client at: {persist_path}")
         _client = chromadb.PersistentClient(path=persist_path)
     return _client
 
@@ -25,7 +27,7 @@ def get_collection():
             name=COLLECTION_NAME,
             metadata={"hnsw:space": "cosine"}  # cosine similarity for BGE embeddings
         )
-        print(f"[chroma] Collection '{COLLECTION_NAME}' ready. Count: {_collection.count()}")
+        logger.info(f"Collection '{COLLECTION_NAME}' ready. Count: {_collection.count()}")
     return _collection
 
 def upsert_chunks(chunks: list[dict]) -> int:
@@ -64,7 +66,7 @@ def upsert_chunks(chunks: list[dict]) -> int:
         metadatas=metadatas
     )
 
-    print(f"[chroma] Upserted {len(chunks)} chunks. Total count: {collection.count()}")
+    logger.info(f"Upserted {len(chunks)} chunks. Total count: {collection.count()}")
     return len(chunks)
 
 def similarity_search(query_embedding: list[float], top_k: int = 5) -> list[dict]:
@@ -75,7 +77,7 @@ def similarity_search(query_embedding: list[float], top_k: int = 5) -> list[dict
     collection = get_collection()
 
     if collection.count() == 0:
-        print("[chroma] Collection is empty — no results.")
+        logger.info(f"Collection is empty — no results.")
         return []
 
     results = collection.query(
@@ -115,4 +117,4 @@ def reset_collection():
     global _collection
     _collection = None
     get_collection()
-    print("[chroma] Collection reset complete.")
+    logger.info(f"Collection reset complete.")

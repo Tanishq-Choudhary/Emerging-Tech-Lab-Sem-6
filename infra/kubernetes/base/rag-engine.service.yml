@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: rag-engine
+  namespace: codeatlas
+  labels:
+    app: rag-engine
+spec:
+  selector:
+    app: rag-engine
+  ports:
+    - protocol: TCP
+      port: 8001
+      targetPort: 8001
+  type: ClusterIP

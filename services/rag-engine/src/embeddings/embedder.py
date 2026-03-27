@@ -1,6 +1,8 @@
 from sentence_transformers import SentenceTransformer
 import os
 from dotenv import load_dotenv
+from ..utils.logger import get_logger
+logger = get_logger(__name__)
 
 load_dotenv()
 
@@ -10,14 +12,15 @@ QUERY_PREFIX = "Represent this sentence for searching relevant passages: "
 DOCUMENT_PREFIX = "Represent this code snippet: "
 
 _model = None
+hf_token = os.getenv("HF_API_TOKEN")
 
 def get_model() -> SentenceTransformer:
     global _model
     if _model is None:
         model_name = os.getenv("EMBEDDING_MODEL", "BAAI/bge-base-en-v1.5")
-        print(f"[embedder] Loading model: {model_name}")
-        _model = SentenceTransformer(model_name)
-        print(f"[embedder] Model loaded successfully.")
+        logger.info(f"Loading model: {model_name}")
+        _model = SentenceTransformer(model_name, token=hf_token)
+        logger.info(f"Model loaded successfully.")
     return _model
 
 def embed_query(question: str) -> list[float]:
