@@ -8,11 +8,11 @@ services:
     ports:
       - "127.0.0.1:${PG_PORT:-5432}:5432"
     volumes:
-      - pgdata:/var/lib/postgresql/data
+      - pgdata_dev:/var/lib/postgresql/data
     healthcheck:
       test: [ "CMD-SHELL", "pg_isready -U ${PG_USER:-codeatlas}" ]
-      interval: 10s
-      timeout: 5s
+      interval: 5s
+      timeout: 3s
       retries: 5
 
   api-gateway:
@@ -22,25 +22,31 @@ services:
     ports:
       - "127.0.0.1:${PORT:-3000}:3000"
     environment:
-      NODE_ENV: ${NODE_ENV:-production}
+      NODE_ENV: ${NODE_ENV:-development}
       PORT: ${PORT:-3000}
       PG_HOST: ${PG_HOST:-postgres}
       PG_PORT: ${PG_PORT:-5432}
       PG_DATABASE: ${PG_DATABASE:-codeatlas}
       PG_USER: ${PG_USER:-codeatlas}
       PG_PASSWORD: ${PG_PASSWORD:-codeatlas_dev}
-      RAG_ENGINE_URL: http://rag-engine:8001
+      RAG_ENGINE_URL: ${RAG_ENGINE_URL:-http://rag-engine:8001}
       UPLOAD_DIR: /app/uploads
     depends_on:
       postgres:
         condition: service_healthy
     volumes:
-      - uploads:/app/uploads
+      - ../../services/api-gateway/src:/app/services/api-gateway/src
+      - ../../services/shared/src:/app/services/shared/src
+      - /app/services/api-gateway/node_modules
+      - /app/services/shared/node_modules
+      - uploads_dev:/app/uploads
+    command: npm run dev
 
   ingestion-service:
     build:
       context: ../../
       dockerfile: services/ingestion-service/Dockerfile
+    command: npm run dev
     environment:
       PG_HOST: ${PG_HOST:-postgres}
       PG_PORT: ${PG_PORT:-5432}
@@ -48,13 +54,46 @@ services:
       PG_USER: ${PG_USER:-codeatlas}
       PG_PASSWORD: ${PG_PASSWORD:-codeatlas_dev}
       UPLOAD_DIR: /app/uploads
-      POLL_INTERVAL: ${POLL_INTERVAL:-5000}
+      POLL_INTERVAL: ${POLL_INTERVAL:-3000}
     depends_on:
       postgres:
         condition: service_healthy
     volumes:
-      - uploads:/app/uploads
+      - ../../services/ingestion-service/src:/app/services/ingestion-service/src
+      - ../../services/shared/src:/app/services/shared/src
+      - /app/services/ingestion-service/node_modules
+      - /app/services/shared/node_modules
+      - uploads_dev:/app/uploads
+
+  rag-engine:
+    build:
+      context: ../../services/rag-engine
+      dockerfile: Dockerfile
+    container_name: rag-engine
+    ports:
+      - "8001:8001"
+    environment:
+      - POSTGRES_HOST=postgres
+      - POSTGRES_PORT=${PG_PORT:-5432}
+      - POSTGRES_DB=${PG_DATABASE:-codeatlas}
+      - POSTGRES_USER=${PG_USER:-codeatlas}
+      - POSTGRES_PASSWORD=${PG_PASSWORD:-codeatlas_dev}
+      - CHROMA_PERSIST_PATH=/app/chroma_data
+      - EMBEDDING_MODEL=BAAI/bge-base-en-v1.5
+      - HF_API_TOKEN=${HF_API_TOKEN:-}
+      - LLM_MODEL=mistralai/Mistral-7B-Instruct-v0.2
+      - TOP_K_DEFAULT=5
+      - SIMILARITY_THRESHOLD=0.5
+      - SYNC_INTERVAL_SECONDS=60
+      - PORT=8001
+    volumes:
+      - rag_chroma_data:/app/chroma_data
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
 
 volumes:
-  pgdata:
-  uploads:
+  pgdata_dev:
+  uploads_dev:
+  rag_chroma_data:
