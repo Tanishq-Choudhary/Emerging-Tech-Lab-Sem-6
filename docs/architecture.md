@@ -53,3 +53,44 @@ The central source of truth for metadata and job orchestration.
 
 ## Infrastructure
 All services are containerized and deployed via Kubernetes. Stateful data (Postgres) uses PersistentVolumeClaims. Services communicate securely within the cluster via ClusterIPs.
+
+## Code Visualizer
+
+An interactive force-directed graph of your ingested codebase — files, classes, and functions as nodes with edges showing containment relationships.
+
+### How it works
+
+The RAG engine exposes a `GET /graph` endpoint that queries `chunk_metadata` and `documents` from PostgreSQL and returns a node/edge graph. The Control Center UI renders this with [vis-network](https://visjs.github.io/vis-network/).
+
+### Usage
+
+1. Upload and ingest files via the Control Center
+2. Scroll to the **Code Graph** panel
+3. Optionally filter by repository name
+4. Click **Load Graph**
+
+### Node types
+
+| Color | Type | Description |
+|-------|------|-------------|
+| Blue | File | Source file / document |
+| Pink | Class | Parsed class definition |
+| Purple | Function | Parsed function or method |
+
+### Layout options
+
+- **Physics (force-directed)** — organic clustering, good for exploring large codebases
+- **Hierarchical (top-down)** — structured tree view, good for seeing file → class → function hierarchy
+
+### Endpoint
+
+```
+GET http://localhost:8001/graph?repository=<name>
+```
+
+`repository` is optional. Returns `{ nodes, edges, stats }`.
+
+### Requirements
+
+- RAG engine must be running with port `8001` exposed (see `docker-compose.yml`)
+- Files must be ingested before the graph will populate
