@@ -20,7 +20,7 @@ services:
       context: ../../
       dockerfile: services/api-gateway/Dockerfile
     ports:
-      - "127.0.0.1:${PORT:-3000}:3000"
+      - "127.0.0.1:${API_PORT:-3000}:3000"
     environment:
       NODE_ENV: ${NODE_ENV:-development}
       PORT: ${PORT:-3000}
@@ -70,8 +70,6 @@ services:
       context: ../../services/rag-engine
       dockerfile: Dockerfile
     container_name: rag-engine
-    ports:
-      - "8001:8001"
     environment:
       - POSTGRES_HOST=postgres
       - POSTGRES_PORT=${PG_PORT:-5432}

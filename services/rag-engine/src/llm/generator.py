@@ -4,15 +4,8 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-HF_API_URL = "https://api-inference.huggingface.co/models"
-
 def _build_prompt(question: str, context_chunks: list[dict]) -> str:
-    """
-    Builds a structured prompt from the question and retrieved chunks.
-    Each chunk includes its file path and content for grounded answers.
-    """
     context_parts = []
-
     for i, chunk in enumerate(context_chunks, start=1):
         file_path = chunk.get("file_path", "unknown")
         start_line = chunk.get("start_line", "?")
@@ -26,7 +19,7 @@ def _build_prompt(question: str, context_chunks: list[dict]) -> str:
 
     prompt = f"""You are an expert code assistant. A developer is asking a question about a legacy codebase.
 Use ONLY the provided code context to answer. Be specific — mention exact file names and line numbers when relevant.
-If the context does not contain enough information, say "I could not find relevant information in the codebase."
+If the context does not contain enough information, make educated guess based on specifics available to you."
 
 ### Code Context:
 {context_str}
@@ -40,11 +33,6 @@ If the context does not contain enough information, say "I could not find releva
 
 
 def generate_answer(question: str, context_chunks: list[dict]) -> str:
-    """
-    Calls HuggingFace Inference API with the question + context chunks.
-    Returns the generated answer string.
-    Falls back to a safe message if the API call fails.
-    """
     hf_token = os.getenv("HF_API_TOKEN", "")
     model = os.getenv("LLM_MODEL", "mistralai/Mistral-7B-Instruct-v0.2")
 
@@ -60,28 +48,27 @@ def generate_answer(question: str, context_chunks: list[dict]) -> str:
     }
 
     payload = {
-        "inputs": prompt,
-        "parameters": {
-            "max_new_tokens": 512,
-            "temperature": 0.2,        # Low temp = more factual, less creative
-            "return_full_text": False,  # Only return the generated part, not the prompt
-            "stop": ["### Question:", "### Context:"]
-        }
+        "model": model,
+        "prompt": prompt,
+        "max_tokens": 512,
+        "temperature": 0.2,
+        "stop": ["### Question:", "### Context:"]
     }
-
-    url = f"{HF_API_URL}/{model}"
 
     try:
         with httpx.Client(timeout=30.0) as client:
-            response = client.post(url, headers=headers, json=payload)
+            response = client.post(
+                "https://router.huggingface.co/featherless-ai/v1/completions",
+                headers=headers,
+                json=payload
+            )
             response.raise_for_status()
             data = response.json()
 
-            # HF returns a list: [{ "generated_text": "..." }]
-            if isinstance(data, list) and len(data) > 0:
-                answer = data[0].get("generated_text", "").strip()
-                if answer:
-                    return answer
+            # OpenAI-compatible response format
+            answer = data["choices"][0]["text"].strip()
+            if answer:
+                return answer
 
             print(f"[llm] Unexpected response format: {data}")
             return _fallback_answer(context_chunks)
@@ -100,10 +87,6 @@ def generate_answer(question: str, context_chunks: list[dict]) -> str:
 
 
 def _fallback_answer(context_chunks: list[dict]) -> str:
-    """
-    When LLM is unavailable, return the most relevant chunk's content
-    as a plain-text fallback so the endpoint still returns something useful.
-    """
     if not context_chunks:
         return "No relevant code found in the codebase for your query."
 
