@@ -84,6 +84,8 @@ services:
       - SIMILARITY_THRESHOLD=0.5
       - SYNC_INTERVAL_SECONDS=60
       - PORT=8001
+    ports:
+      - "127.0.0.1:8001:8001"
     volumes:
       - rag_chroma_data:/app/chroma_data
     depends_on:
