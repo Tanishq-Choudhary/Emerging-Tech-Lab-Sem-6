@@ -2,24 +2,25 @@ FROM node:22-alpine
 
 WORKDIR /app
 
-# Copy root configurations
-COPY package.json ./
+# Install shared dependencies
+COPY services/shared/package.json /app/services/shared/package.json
+RUN cd /app/services/shared && npm install --production
 
-# Copy packages
-COPY services/shared/ package.json services/shared/
-COPY services/ingestion-service/ package.json services/ingestion-service/
+# Copy shared source
+COPY services/shared/src /app/services/shared/src
 
-# Install from root leveraging workspaces
-RUN npm install --production
+# Install ingestion dependencies
+COPY services/ingestion-service/package.json /app/services/ingestion-service/package.json
+RUN cd /app/services/ingestion-service && npm install --production
 
-# Copy source
-COPY services/shared/ services/shared/
-COPY services/ingestion-service/ services/ingestion-service/
+# Copy ALL ingestion source — including subfolders
+COPY services/ingestion-service/src /app/services/ingestion-service/src
 
-WORKDIR /app/services/ingestion-service
+# Link shared as a local module
+RUN ln -s /app/services/shared /app/services/ingestion-service/node_modules/codeatlas-shared
 
 RUN mkdir -p /app/uploads && chown node:node /app/uploads
 
+WORKDIR /app/services/ingestion-service
 USER node
-
 CMD ["node", "src/worker.js"]

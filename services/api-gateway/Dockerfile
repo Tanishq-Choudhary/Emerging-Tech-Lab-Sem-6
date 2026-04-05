@@ -2,24 +2,24 @@ FROM node:22-alpine
 
 WORKDIR /app
 
-# Copy root configurations
-COPY package.json ./
+# Install shared dependencies
+COPY services/shared/package.json /app/services/shared/package.json
+RUN cd /app/services/shared && npm install --production
 
-# Copy packages
-COPY services/shared/ package.json services/shared/
-COPY services/api-gateway/ package.json services/api-gateway/
+# Copy shared source
+COPY services/shared/src /app/services/shared/src
 
-# Install from root leveraging workspaces
-RUN npm install --production
+# Install gateway dependencies
+COPY services/api-gateway/package.json /app/services/api-gateway/package.json
+RUN cd /app/services/api-gateway && npm install --production
 
-# Copy source
-COPY services/shared/ services/shared/
-COPY services/api-gateway/ services/api-gateway/
+# Copy ALL gateway source — including subfolders
+COPY services/api-gateway/src /app/services/api-gateway/src
+
+# Link shared as a local module
+RUN ln -s /app/services/shared /app/services/api-gateway/node_modules/codeatlas-shared
 
 WORKDIR /app/services/api-gateway
 EXPOSE 3000
-
 USER node
-
 CMD ["node", "src/server.js"]
-

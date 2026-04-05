@@ -18,11 +18,11 @@ async function processNextJob() {
 
   try {
     const uploadDir = process.env.UPLOAD_DIR || './uploads';
-    const document = await require('../repository/document.repo').findById(job.documentId);
+    const document = await require('./repository/document.repo').findById(job.documentId);
     if (!document) throw new Error('Document not found');
 
     const filePath = path.join(uploadDir, document.filename);
-    const results = await require('../pipeline/processor').processFile(filePath, document.repositoryName, job.id, document.id);
+    const results = await require('./pipeline/processor').processFile(filePath, document.repositoryName, job.id, document.id);
 
     await jobRepo.markCompleted(job.id);
     logger.info('Job completed', { jobId: job.id, documentId: job.documentId });
